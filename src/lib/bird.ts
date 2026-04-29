@@ -130,13 +130,24 @@ function escapeJsonStringControlChars(value: string) {
 }
 
 function parseBirdJson(stdout: string) {
+	// bird may emit warning lines (e.g. "⚠️ No Twitter cookies found in Safari.")
+	// to stdout before the JSON payload when there is no TTY. Strip them.
+	const jsonStart = stdout.indexOf("{");
+	const arrayStart = stdout.indexOf("[");
+	const start =
+		jsonStart === -1
+			? arrayStart
+			: arrayStart === -1
+				? jsonStart
+				: Math.min(jsonStart, arrayStart);
+	const cleaned = start > 0 ? stdout.slice(start) : stdout;
 	try {
-		return JSON.parse(stdout) as unknown;
+		return JSON.parse(cleaned) as unknown;
 	} catch (error) {
 		if (!(error instanceof SyntaxError)) {
 			throw error;
 		}
-		return JSON.parse(escapeJsonStringControlChars(stdout)) as unknown;
+		return JSON.parse(escapeJsonStringControlChars(cleaned)) as unknown;
 	}
 }
 
